@@ -12,6 +12,8 @@
    holds 0/255 now; another zyuzhi comparison is redundant and was the reason
    the picture could go all black.  0 = show the array as-is (grayscale). */
 #define LU_IMG_THRESHOLD    0
+/* 1 = page1 shows the RAW grayscale frame, 0 = binary image */
+#define LU_IMG_RAW_PREVIEW  1
 #include "zf_common_headfile.h"
 int8 Page_Choose_flag = 0;
 int8 Parameter_Choose_flag = 0;
@@ -31,7 +33,12 @@ void LuUI_Show_page1(void)
 {
     if(mt9v03x_finish_flag)       //总钻风图像
         {
-            ips200_show_gray_image(0, 0,*imagebinary, MT9V03X_W, MT9V03X_H, 240, 140, LU_IMG_THRESHOLD);   /* [2026-10-20] was zyuzhi */     // 显示二值化图像
+            /* [2026-10-20] DIAG: show the RAW camera image in grayscale.
+               Set to 0 to go back to the binary (imagebinary) view. */
+            if(LU_IMG_RAW_PREVIEW)
+                ips200_show_gray_image(0, 0,*mt9v03x_image, MT9V03X_W, MT9V03X_H, 240, 140, 0);
+            else
+                ips200_show_gray_image(0, 0,*imagebinary, MT9V03X_W, MT9V03X_H, 240, 140, LU_IMG_THRESHOLD);   /* [2026-10-20] was zyuzhi */     // 显示二值化图像
             DisplayLine(Left_Add_Line, RGB565_RED);
             DisplayLine(Right_Add_Line, RGB565_BLUE);
             for(uint8 i = 59;i>5;i--)
