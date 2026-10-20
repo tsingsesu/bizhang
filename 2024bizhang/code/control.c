@@ -44,6 +44,9 @@
 uint8    Point_Mid = MT9V03X_W/2;
 /* [2026-10-20] 3-frame median on Point; reflection blobs make single-frame
    jumps.  A real lane change is gradual, so this costs one frame of lag. */
+/* [2026-10-20] 1 = ignore the image and steer to the mathematical centre.
+   Use it to split "perception is biased" from "the car itself drifts". */
+#define STEER_FORCE_CENTER    0
 #define AGL_POINT_MEDIAN_EN   0   // [2026-10-20] off until the glare pass is validated:
                                    // a steady lane offset would look like a "jump"
                                    // and pin the steering to the centre.
@@ -293,6 +296,7 @@ void Point_Control(void)
         point_med = 60;
     }
     Point = point_med;
+    if(STEER_FORCE_CENTER) Point = Point_Mid;   // [2026-10-20] self-test
 
 }
 

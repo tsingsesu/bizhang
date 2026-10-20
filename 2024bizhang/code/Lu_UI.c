@@ -106,6 +106,9 @@ void LuUI_Show_page1(void)
     /* [2026-10-20] live camera diagnostics */
     ips200_show_int(Show_X[1],Show_Y[14],diedai_threshold,4);
     ips200_show_int(Show_X[2],Show_Y[14],zyuzhi + Differ_light,4);
+    /* [2026-10-20] Point vs centre: Point > Point_Mid(60) means "steer right".*/
+    ips200_show_int(Show_X[1],Show_Y[15],Point,4);
+    ips200_show_int(Show_X[2],Show_Y[15],SD5_Duty,4);
 //
 //    ips200_show_float(Show_X[1],Show_Y[14],KR,4,4);
 //    ips200_show_float(Show_X[2],Show_Y[14],KL,4,4);
