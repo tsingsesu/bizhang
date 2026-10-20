@@ -102,8 +102,10 @@ int core0_main(void)
             gpio_set_level(P02_5,1);//左后转向
             gpio_set_level(P02_6,1);//右前转向
             gpio_set_level(P02_7,1);//右后转向
-            gpio_set_level(P20_11,1);//左前大灯
-            gpio_set_level(P20_12,1);//右前大灯
+            // [2026-10-20] headlights OFF while waiting: they reflect off the
+            // glossy PVC and saturate the camera during the start phase.
+            gpio_set_level(P20_11,0);//左前大灯
+            gpio_set_level(P20_12,0);//右前大灯
             gpio_set_level(P20_13,1);//左后刹灯
             gpio_set_level(P20_14,1);//右后刹灯
             if(dl1b_distance_mm<400)

@@ -203,7 +203,7 @@ void LuUI_Key(void)
         if(Page_Choose_flag == 2)
         {
             if(Parameter_Choose_flag == 4)  { Differ -= 1; }
-            else if(zyuzhi > 2)             { zyuzhi -= 2; }
+            else if(zyuzhi > 20)            { zyuzhi -= 2; }   // [2026-10-20] lower bound 2 -> 20
         }
         Key_Protect[KEY_DOWN] = 1;
     }
@@ -218,7 +218,7 @@ void LuUI_Key(void)
         if(Page_Choose_flag == 2)
         {
             if(Parameter_Choose_flag == 4)  { Differ += 1; }
-            else if(zyuzhi < 90)            { zyuzhi += 2; }
+            else if(zyuzhi < 200)           { zyuzhi += 2; }   // [2026-10-20] upper bound 90 -> 200
         }
         Key_Protect[KEY_LEFT] = 1;
     }

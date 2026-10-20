@@ -68,6 +68,138 @@ uint32 distance_0,distance_1,distance_2;                //转换出来的距离 
 uint8 Distance_Left_Flag,Distance_Right_Flag;
 uint8 Stadiometry_Flag1,Stadiometry_Flag2,Stdiometry_Flag3;
 uint8 Light_Flag,Light_Flag1;
+/* ===== [2026-10-20] reflection (glare) suppression, see Img_analyse.h ===== */
+uint8 agl_rejected_rows = 0;   // diag: rows rejected because white runs looked like glare
+uint8 agl_blob_pair     = 0;   // diag: rows that contained two glare-sized white runs
+
+static uint8 agl_run_limit(uint8 i)
+{
+    return (i >= AGL_NEAR_ROW) ? AGL_RUN_NEAR : AGL_RUN_FAR;
+}
+
+static uint8 agl_jump_limit(uint8 i)
+{
+    return (i >= AGL_NEAR_ROW) ? AGL_EDGE_JUMP_NEAR : AGL_EDGE_JUMP_FAR;
+}
+
+/* Width of the white run that starts at column j (0 if data[j] is black). */
+static uint8 agl_run_width(uint8 *data, uint8 i, uint8 j)
+{
+    uint8 w = 0;
+    if(j >= COL || !data[i*COL + j]) return 0;
+    while((uint16)(j + w) < COL && data[i*COL + j + w]) w ++;
+    return w;
+}
+
+/* Count white px strictly between the two lane edges. */
+uint8 LinkCnt_Valid_Rows(uint8 *data, uint8 i)
+{
+    uint8 j, n = 0;
+    for(j = Left_Line[i] + 1; j + 1 < Right_Line[i]; j ++)
+    {
+        if(data[i*COL + j]) n ++;
+    }
+    return n;
+}
+
+/* Count white runs wider than the glare limit inside [c0,c1]. */
+static uint8 agl_blob_count(uint8 *data, uint8 i, uint8 c0, uint8 c1)
+{
+    uint8 j, n = 0, in = 0;
+    if(c0 >= COL) c0 = COL - 1;
+    if(c1 >= COL) c1 = COL - 1;
+    for(j = c0; j <= c1; j ++)
+    {
+        if(!in)
+        {
+            if(data[i*COL + j])
+            {
+                in = 1;
+                if(agl_run_width(data, i, j) > agl_run_limit(i)) n ++;
+            }
+        }
+        else if(!data[i*COL + j]) in = 0;
+    }
+    return n;
+}
+
+/* Replace an implausible edge by prediction from the row below. */
+static uint8 agl_sanitize_edge(uint16 *Line, uint8 i, uint8 near_side)
+{
+    int16 pred, diff;
+    (void)near_side;
+    if(i + 1 > 58) return 0;                     // 59/60 are uninitialised defaults
+    pred = (int16)Line[i+1] + ((int16)Line[i+1] - (int16)Line[(i + 2 > 58) ? 58 : (i + 2)]);
+    if(pred < 1)  pred = 1;
+    if(pred > COL-2) pred = COL-2;
+    diff = (int16)Line[i] - pred;
+    if(diff < 0) diff = -diff;
+    if(diff > (int16)agl_jump_limit(i))
+    {
+        Line[i] = (uint16)pred;
+        return 1;
+    }
+    return 0;
+}
+
+/* Row-level glare pass, runs after Image_Handle() has built Left/Right_Line.
+   Only rows Image_Handle actually produced (Line_Count .. 59) are touched. */
+void Glare_Suppress(uint8 *data)
+{
+    uint8 i, changed;
+    agl_rejected_rows = 0;
+    agl_blob_pair = 0;
+#if AGL_EN
+    for(i = 57; i >= 1; i --)              // near -> far; row 58 handled by the blob test only
+    {
+        if(i < Line_Count) continue;       // rows above Line_Count were not produced
+        changed = 0;
+        if((uint16)Right_Line[i] <= (uint16)(Left_Line[i] + 4))
+        {
+            changed = 1;
+        }
+        else
+        {
+            // [2026-10-20] order matters: a wide white blob makes the first
+            // transition a SPURIOUS edge, so run the blob test before the
+            // jump test.  The jump test is only a fallback for narrow blobs.
+            {
+                uint8 interior = LinkCnt_Valid_Rows(data, i);
+                (void)interior;
+                if(interior > AGL_MAX_INTERIOR) changed = 1;       // floor turned white
+            }
+            if(!changed)
+            {
+                changed |= agl_sanitize_edge(Left_Line,  i, 1);
+                changed |= agl_sanitize_edge(Right_Line, i, 0);
+            }
+        }
+        if(changed)
+        {
+            agl_rejected_rows ++;
+            if(i + 1 <= 60)
+            {
+                Left_Line[i]       = Left_Line[i+1];
+                Right_Line[i]      = Right_Line[i+1];
+                Left_Add_Line[i]   = Left_Line[i];
+                Right_Add_Line[i]  = Right_Line[i];
+                Left_Add_Flag[i]   = 0;
+                Right_Add_Flag[i]  = 0;
+            }
+        }
+        else if(agl_blob_count(data, i, Left_Line[i] + 1, Right_Line[i] - 1) >= 2)
+        {
+            agl_blob_pair ++;
+        }
+        Width_Real[i] = Right_Line[i] - Left_Line[i];
+        Width_Add[i]  = Width_Real[i];
+        Mid_Line[i]   = (Right_Line[i] + Left_Line[i]) / 2;
+    }
+#else
+    (void)data;
+#endif
+}
+
 uint8 Num_Turn_L,Num_Turn_R;
 int32 Time_Cal;
 /*
@@ -895,6 +1027,11 @@ void Find_Rhombus(uint8 *data)
                 a++;
             }
         }
+        // [2026-10-20] skip rows that hold TWO glare-sized white runs
+        if(agl_blob_count(data, i, 1, COL-2) >= 2)
+        {
+            a = 0;
+        }
         if(a>2)
         {
             Rhombus_Flag = 1;
@@ -914,6 +1051,7 @@ void Find_Zebra(uint8 *data)
                 a++;
             }
         }
+        if(agl_blob_count(data, i, 1, COL-2) >= 2) a = 0;   // [2026-10-20] glare row
         if(a>2)
         {
             gpio_set_level(P33_10,1);
@@ -935,6 +1073,7 @@ void Find_Decelerate(uint8 *data)
                 a++;
             }
         }
+        if(agl_blob_count(data, i, 1, COL-2) >= 2) a = 0;   // [2026-10-20] glare row
         if(a>=2)
         {
             Rhombus_Flag = 1;
@@ -1602,6 +1741,15 @@ void  Find_Rhombus_Out(uint8 *data)
                     aaa++;
                 }
             }
+        }
+        // [2026-10-20] two glare blobs in one row = reflection, not "diamond gone"
+        {
+            uint8 gi, pair = 0;
+            for(gi = 40; gi <= 50; gi ++)
+            {
+                if(agl_blob_count(data, gi, 1, COL-2) >= 2) pair = 1;
+            }
+            if(pair) aaa += 10;
         }
         if(aaa<2)
         {

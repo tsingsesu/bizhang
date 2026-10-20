@@ -151,6 +151,7 @@ typedef enum
 extern uint8   imagebinary[MT9V03X_H][MT9V03X_W];
 extern uint8   imagen[ROW][COL];
 extern uint8 zyuzhi,Differ_light;
+extern uint8 diedai_threshold;    // [2026-10-20] diag: final threshold of Diedai()
 // 摄像头接口类型枚举
 typedef enum
 {

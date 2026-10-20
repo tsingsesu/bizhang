@@ -84,7 +84,8 @@ uint8   cam_diag_sccb_ok = 0;   // 1 = SCCB ͨ�ųɹ��� -> ˵������ͷȷʵ��Ӧ��
 uint8   imagebinary[MT9V03X_H][MT9V03X_W];
 uint8   imagen[ROW][COL];
 
-uint8 zyuzhi = 35,Differ_light;
+uint8 zyuzhi = 100,Differ_light;   // [2026-10-20] was 35 (=35% of Otsu -> white floor)
+uint8 diedai_threshold = 0;     // [2026-10-20] diag: final threshold of Diedai()
 // ��Ҫ���õ�����ͷ������ �����������޸Ĳ���
 static int16 mt9v03x_set_confing_buffer[MT9V03X_CONFIG_FINISH][2]=
 {
@@ -670,7 +671,7 @@ void binaryzation(uint8 val)
           {
               if( mt9v03x_image[i][j] > temp)
               {
-                imagebinary[i][j] = 0xFFFF;
+                imagebinary[i][j] = 1;      // [2026-10-20] was 0xFFFF -> 0xFF in uint8
               }
               else
               {
@@ -683,51 +684,55 @@ void binaryzation(uint8 val)
 
 uint8 Diedai(uint8 *image, uint16 col, uint16 row)//    µü´ú·¨     //
 {
-    int pixelCount[256] = {0};
-    int i,j,y=0;            // pixelSum = width * height;
-    uint8 A1=0,A2=0,T0=0;   //T2=0;
-    uint8* data = image;   //Ö¸ÏòÏñËØÊý¾ÝµÄÖ¸Õë
-     int min=255,max=0;
-    //Í³¼Æ»Ò¶È¼¶ÖÐÃ¿¸öÏñËØÔÚÕû·ùÍ¼ÏñÖÐµÄ¸öÊý
-    for (i = row-90; i >=0; i-=1)                     // for (i = 89; i >=0; i-=2)
+  // [2026-10-20] rewritten ----------------------------------------------
+    /* The old loop started at (row-90); with ROW=70 that is -20, so the
+       histogram was never filled and 0/0 was evaluated later.  The actual
+       threshold was whatever the hardware did with the divide-by-zero. */
+    static uint16 pixelCount[256];      // static: 512 B, keeps CPU1 stack small
+    int32  i, j, y;
+    int32  X, lP1, lP2, lS1, lS2;
+    uint8  A1, A2, T0;
+    uint8 *data = image;
+    int32  min = 255, max = 0;
+
+    for (i = 0; i < 256; i ++)
     {
-        for (j = 0; j < col; j+=1)               // for (j = 0; j < col; j+=2)
+        pixelCount[i] = 0;
+    }
+    for (i = 0; i < (int32)row; i ++)                       // whole frame
+    {
+        for (j = 0; j < (int32)col; j ++)
         {
-          pixelCount[(int)data[i * col + j]]++;    //½«ÏñËØÖµ×÷Îª¼ÆÊýÊý×éµÄÏÂ±ê
-          if((int)data[i * col + j]>max)
-            max=(int)data[i * col + j];
-          if((int)data[i * col + j]<min)
-            min=(int)data[i * col + j];
+            pixelCount[data[i * col + j]] ++;
+            if(data[i * col + j] > max)  max = data[i * col + j];
+            if(data[i * col + j] < min)  min = data[i * col + j];
         }
     }
-    T0=(min+max)/2;
 
-  /***************µü´ú·¨**************/
-      int X=0,lP1 =0,lP2 =0 , lS1 = 0,lS2 = 0;
-
-      for(y = 0; X != T0 && y < 200;  y ++)  //¿ªÊ¼Ä¬ÈÏÊÇµü´ú1000´Î
-         {
-                X = T0;
-
-               //ÇóÁ½¸öÇøÓòµÄ»Ò¶ÈÆ½¾ùÖµ
-               for (i = min;i < X;i+=2)
-               {
-                      lP1 += pixelCount[i]*i;
-                      lS1 += pixelCount[i];
-               }
-               A1 = (unsigned char)(lP1 / lS1);
-               for (i = X+1;i <=max;i+=2)
-               {
-                      lP2 += pixelCount[i]*i;
-                      lS2 += pixelCount[i];
-               }
-               A2 = (unsigned char)(lP2 / lS2);
-               T0 =  (A1 + A2)/2;
+    T0 = (uint8)((min + max) / 2);
+    A1 = A2 = T0;
+    for(y = 0; X != T0 && y < 200;  y ++)                   // iterative split
+    {
+        X   = T0;
+        lP1 = lP2 = lS1 = lS2 = 0;                          // cleared every pass
+        for (i = min; i < X; i ++)                          // step 1, not 2
+        {
+            lP1 += (int32)pixelCount[i] * i;
+            lS1 += pixelCount[i];
         }
-  //     printf("y %d  ",T0);
-      T0 = T0*((zyuzhi+Differ_light)/100.0);
+        A1 = (lS1 > 0) ? (uint8)(lP1 / lS1) : T0;
+        for (i = X + 1; i <= max; i ++)
+        {
+            lP2 += (int32)pixelCount[i] * i;
+            lS2 += pixelCount[i];
+        }
+        A2 = (lS2 > 0) ? (uint8)(lP2 / lS2) : T0;
+        T0 = (uint8)((A1 + A2) / 2);
+    }
 
- return T0;
-
-
+    T0 = (uint8)(T0 * ((zyuzhi + Differ_light) / 100.0));   // keep original tuning factor
+    if(T0 < 12)   T0 = 12;                                  // never all-white
+    if(T0 > 240)  T0 = 240;                                 // never all-black
+    diedai_threshold = T0;
+    return T0;
 }

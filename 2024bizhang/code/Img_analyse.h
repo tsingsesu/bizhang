@@ -4,7 +4,26 @@
 
 #define Poor_Sum(x,y)  (((x-y)<<7)/(x+y))   // 计算差 比 和  放大 127 倍
 #define Black_Write   40       // 黑白赛道 分界线
-#define Gray_Num  2  //  灰度间隔
+#define Gray_Num  2
+
+/* ===== [2026-10-20] reflection (glare) suppression ===== */
+/* Floor reflections are saturated (>=200) and much wider than the 20 mm
+   tape.  Every scan starts at the lane centre and walks outward, so the
+   FIRST white run it meets on the floor IS the reflection.  A real edge
+   line (tape) gives a white run of roughly 2 px in this 120x70 image. */
+#define AGL_EN              1      // 0 = old behaviour, for A/B testing
+#define AGL_NEAR_ROW        22     // rows >= this are near-field
+#define AGL_RUN_NEAR        8      // white run wider than this (near)  = glare, skip
+#define AGL_RUN_FAR         5      // white run wider than this (far)   = glare, skip
+#define AGL_EDGE_JUMP_NEAR  8      // max px a lane edge may jump per row (near)
+#define AGL_EDGE_JUMP_FAR   5      // max px a lane edge may jump per row (far)
+#define AGL_MIN_INTERIOR    3      // min white px inside a valid lane row (mid/near)
+#define AGL_MAX_INTERIOR    60     // max white px inside a real lane (all-white = bad threshold)
+extern uint8 agl_rejected_rows;   // diag: rows whose edges were rejected as glare
+extern uint8 agl_blob_pair;       // diag: two glare blobs seen in the same row
+void Glare_Suppress(uint8 *data);
+uint8 LinkCnt_Valid_Rows(uint8 *data, uint8 i);
+  //  灰度间隔
 
 typedef enum
 {

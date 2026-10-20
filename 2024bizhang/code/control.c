@@ -42,6 +42,23 @@
                                                  //   跑熟了再往上加：25 -> 52，50 -> 105
        /****************************    舵机控制变量    ****************************/
 uint8    Point_Mid = MT9V03X_W/2;
+/* [2026-10-20] 3-frame median on Point; reflection blobs make single-frame
+   jumps.  A real lane change is gradual, so this costs one frame of lag. */
+#define AGL_POINT_MEDIAN_EN   1
+static uint8 agl_point_hist[3] = {60, 60, 60};
+static uint8 agl_point_i = 0;
+
+static uint8 agl_point_median(uint8 v)
+{
+    uint8 a, b, c, t;
+    agl_point_hist[agl_point_i] = v;
+    agl_point_i = (uint8)((agl_point_i + 1) % 3);
+    a = agl_point_hist[0]; b = agl_point_hist[1]; c = agl_point_hist[2];
+    if(a > b) { t = a; a = b; b = t; }
+    if(b > c) { t = b; b = c; c = t; }
+    if(a > b) { t = a; a = b; b = t; }
+    return b;                                  /* median */
+}
 uint8    Point_Left = 43;//43
 uint8    Point_Right = 37;//37
 int32    SD5_Duty =  SteerMiddle;
@@ -246,6 +263,8 @@ void Point_Control(void)
 {
     float res;
     int32 Sum = 0;
+    uint8 point_raw, point_med;
+    /* [2026-10-20] remember the raw Point before the median for the loss guard */
 //    if(Deal_Flag > 20 && !Dis_Flag)
 //    {
 //        Line_Point = 45;
@@ -257,7 +276,21 @@ void Point_Control(void)
     //Least_Sqaure_Method(&Mid_Ka,&Mid_Kb,58, Line_Count+2); // 拟合中线斜率
     Fictitious_Beeline_Num = Fictitious_Beeline(Mid_Ka,Mid_Kb);  // 拟合中线  返回相似度
     res = Line_Point * Mid_Ka + Mid_Kb;
-    Point = range_protect((int32)res, 2, 118);
+    point_raw = range_protect((int32)res, 2, 118);
+#if AGL_POINT_MEDIAN_EN
+    point_med = agl_point_median(point_raw);
+#else
+    point_med = point_raw;
+#endif
+    /* A large disagreement between the raw fit and its median means one of
+       them is seeing a reflection, not a lane.  Treat it as a lost line so
+       S3010_Control() holds the middle instead of jerking. */
+    if((uint8)((point_raw > point_med) ? (point_raw - point_med) : (point_med - point_raw)) > 25)
+    {
+        agl_point_hist[0] = agl_point_hist[1] = agl_point_hist[2] = 60;
+        point_med = 60;
+    }
+    Point = point_med;
 
 }
 
