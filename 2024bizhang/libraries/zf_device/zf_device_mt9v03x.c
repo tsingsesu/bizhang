@@ -84,7 +84,11 @@ uint8   cam_diag_sccb_ok = 0;   // 1 = SCCB 通信成功过 -> 说明摄像头确实有应答！
 uint8   imagebinary[MT9V03X_H][MT9V03X_W];
 uint8   imagen[ROW][COL];
 
-uint8 zyuzhi = 35,Differ_light;    // [2026-10-20] keep 35: same effective threshold as before
+/* [2026-10-20] 100 = use the real Otsu threshold.
+   With the OLD broken Diedai() the effective threshold was ~89 because 0/0
+   gave T0=255 and then x0.35.  Now Otsu works, so 35 would mean 0.35*Otsu
+   (~35) and the whole floor turns white.  100 restores the old brightness. */
+uint8 zyuzhi = 100,Differ_light;
 uint8 diedai_threshold = 0;     // [2026-10-20] diag: final threshold of Diedai()
 // 需要配置到摄像头的数据 不允许在这修改参数
 static int16 mt9v03x_set_confing_buffer[MT9V03X_CONFIG_FINISH][2]=
