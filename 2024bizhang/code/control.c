@@ -44,7 +44,9 @@
 uint8    Point_Mid = MT9V03X_W/2;
 /* [2026-10-20] 3-frame median on Point; reflection blobs make single-frame
    jumps.  A real lane change is gradual, so this costs one frame of lag. */
-#define AGL_POINT_MEDIAN_EN   1
+#define AGL_POINT_MEDIAN_EN   0   // [2026-10-20] off until the glare pass is validated:
+                                   // a steady lane offset would look like a "jump"
+                                   // and pin the steering to the centre.
 static uint8 agl_point_hist[3] = {60, 60, 60};
 static uint8 agl_point_i = 0;
 
