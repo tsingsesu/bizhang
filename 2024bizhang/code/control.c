@@ -8,6 +8,8 @@
    Line_Count 在 Img_analyse.c 里维护（识别到的赛道行数，越大表示识别到的越少），
    等摄像头通了以后，在表达式窗口里看一眼 Line_Count 的正常范围，再回来调这个阈值。*/
 #define STEER_NO_LINE_LINECOUNT     (58)
+/* [2026-10-20] minimum rows needed before the fitted mid-line is trusted */
+#define STEER_MIN_VALID_ROWS        (40)
 
 /* ★电机测试模式（新增）—— 接电机驱动之前一定先看一眼这里
    0 = 正常：PID 算出来什么就直接给电机（默认，行为不变）
@@ -77,7 +79,9 @@ uint16   Speed_max = 150,Speed_min = 20;
 uint16   Pwm_Max = 915,Pwm_Min = 785;
 
 uint8     Line_Point;    // 目标点 纵坐标
-uint8     Point;                         //目标点横坐标
+/* [2026-10-20] start at the image centre.  0 would be read by the
+   steering loop as "lane is far to one side" before the first frame. */
+uint8     Point = MT9V03X_W / 2;
 char      Point_Error;
 float     Mid_Ka = 0, Mid_Kb = 0;   // 拟合的赛道中线的斜率
 uint8     Fictitious_Midline[61] ;  // 虚拟赛道中线
@@ -126,7 +130,12 @@ void S3010_Control(void)
     /* [2026-10-20] lane following wins over the competition state machine */
     else
     {
-        if((0 == Point) || (Line_Count >= STEER_NO_LINE_LINECOUNT))
+        /* [2026-10-20] Line_Count is the first row Image_Handle managed to
+           process.  Small values mean the fit only has a few rows and is
+           numerically unreliable; the old test (>=58) let those through and
+           the PID then steered on garbage.  Require a solid row band. */
+        if((0 == Point) || (Line_Count < STEER_MIN_VALID_ROWS) ||
+           (Line_Count >= STEER_NO_LINE_LINECOUNT))
             SD5_Duty = SteerMiddle;
         else
             SD5_Duty = range_protect(PlacePID_Control(&Point_PID, Point_Mid, Point), Pwm_Min, Pwm_Max);
