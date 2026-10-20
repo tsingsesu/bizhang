@@ -38,7 +38,7 @@
 // ================= ★图传（逐飞助手） =================
 // 1 = 开图传：每帧约 2 秒（115200 波特率），期间屏幕刷新和按键会变慢
 // 0 = 关图传（在屏幕上调参时用）
-#define CAMERA_SEND_ENABLE      (1)
+#define CAMERA_SEND_ENABLE      (0)   // [2026-10-20] was 1: 115200 baud costs ~2 s per frame
 
 static uint8 image_copy[MT9V03X_H][MT9V03X_W];
 static seekfree_assistant_camera_struct camera_information;
@@ -103,10 +103,8 @@ int core0_main(void)
             gpio_set_level(P02_5,1);//左后转向
             gpio_set_level(P02_6,1);//右前转向
             gpio_set_level(P02_7,1);//右后转向
-            // [2026-10-20] headlights OFF while waiting: they reflect off the
-            // glossy PVC and saturate the camera during the start phase.
-            gpio_set_level(P20_11,0);//左前大灯
-            gpio_set_level(P20_12,0);//右前大灯
+            gpio_set_level(P20_11,1);//左前大灯
+            gpio_set_level(P20_12,1);//右前大灯
             gpio_set_level(P20_13,1);//左后刹灯
             gpio_set_level(P20_14,1);//右后刹灯
             if(dl1b_distance_mm<400)
