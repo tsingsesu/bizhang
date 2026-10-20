@@ -84,7 +84,7 @@ int core0_main(void)
             if(dl1b_distance_mm<400&&dl1b_distance_mm>200)
             {
 
-                Differ_light-=3;
+                if(Differ_light >= 3) Differ_light -= 3;   // [2026-10-20] uint8: no wrap-around
                 // ★原来是 while(dl1b_distance_mm<=400); —— 会死等，主循环卡死
                 //   实测 DL1B 读数一直落在 216~287，正好卡在 200~400 区间，CPU0 主循环永远出不来。
                 //   现在改成不等待，靠后面 time_dl1b_s/time_dl1b 的计时逻辑判断发车。

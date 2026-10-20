@@ -84,7 +84,7 @@ uint8   cam_diag_sccb_ok = 0;   // 1 = SCCB 通信成功过 -> 说明摄像头确实有应答！
 uint8   imagebinary[MT9V03X_H][MT9V03X_W];
 uint8   imagen[ROW][COL];
 
-uint8 zyuzhi = 100,Differ_light;   // [2026-10-20] was 35 (=35% of Otsu -> white floor)
+uint8 zyuzhi = 35,Differ_light;    // [2026-10-20] keep 35: same effective threshold as before
 uint8 diedai_threshold = 0;     // [2026-10-20] diag: final threshold of Diedai()
 // 需要配置到摄像头的数据 不允许在这修改参数
 static int16 mt9v03x_set_confing_buffer[MT9V03X_CONFIG_FINISH][2]=
@@ -671,7 +671,7 @@ void binaryzation(uint8 val)
           {
               if( mt9v03x_image[i][j] > temp)
               {
-                imagebinary[i][j] = 1;      // [2026-10-20] was 0xFFFF -> 0xFF in uint8
+                imagebinary[i][j] = 0xFF;   // [2026-10-20] white=255 (LuUI thresholds this array again)
               }
               else
               {

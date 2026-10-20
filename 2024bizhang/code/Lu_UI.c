@@ -8,6 +8,10 @@
  * 2023.6.28第 1 版调参UI——lujunjie
  */
 #include "Lu_UI.h"
+/* [2026-10-20] The display re-thresholds imagebinary itself.  imagebinary
+   holds 0/255 now; another zyuzhi comparison is redundant and was the reason
+   the picture could go all black.  0 = show the array as-is (grayscale). */
+#define LU_IMG_THRESHOLD    0
 #include "zf_common_headfile.h"
 int8 Page_Choose_flag = 0;
 int8 Parameter_Choose_flag = 0;
@@ -27,7 +31,7 @@ void LuUI_Show_page1(void)
 {
     if(mt9v03x_finish_flag)       //总钻风图像
         {
-            ips200_show_gray_image(0, 0,*imagebinary, MT9V03X_W, MT9V03X_H, 240, 140, zyuzhi);     // 显示二值化图像
+            ips200_show_gray_image(0, 0,*imagebinary, MT9V03X_W, MT9V03X_H, 240, 140, LU_IMG_THRESHOLD);   /* [2026-10-20] was zyuzhi */     // 显示二值化图像
             DisplayLine(Left_Add_Line, RGB565_RED);
             DisplayLine(Right_Add_Line, RGB565_BLUE);
             for(uint8 i = 59;i>5;i--)
@@ -72,6 +76,9 @@ void LuUI_Show_page1(void)
 
     ips200_show_int(Show_X[1],Show_Y[13],Distance,4);
     ips200_show_int(Show_X[2],Show_Y[13],SD5_Duty,4);
+    /* [2026-10-20] live camera diagnostics */
+    ips200_show_int(Show_X[1],Show_Y[14],diedai_threshold,4);
+    ips200_show_int(Show_X[2],Show_Y[14],zyuzhi + Differ_light,4);
 //
 //    ips200_show_float(Show_X[1],Show_Y[14],KR,4,4);
 //    ips200_show_float(Show_X[2],Show_Y[14],KL,4,4);
