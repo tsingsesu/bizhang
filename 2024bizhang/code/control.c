@@ -38,7 +38,7 @@
    在 Control_Speed() 末尾统一乘一遍，这样所有档位一起变慢，不用一个个改。
    注意：这个只改「目标速度」；只要编码器反馈还是 0（轮子不转），PID 照样会顶到 8000。
         想让电机真的不动，用上面的 MOTOR_TEST_MODE = 1。 */
-#define SPEED_PERCENT               (15)   /* [2026-10-20] 10 -> 15 (target 210 -> ~31) */
+#define SPEED_PERCENT               (10)   /* [2026-10-20] back to 10 (15 was too fast) */
                                                  //   跑熟了再往上加：25 -> 52，50 -> 105
        /****************************    舵机控制变量    ****************************/
 uint8    Point_Mid = MT9V03X_W/2;
@@ -263,36 +263,23 @@ void Point_Control(void)
 {
     float res;
     int32 Sum = 0;
-    uint8 point_raw, point_med;
+    uint8 point_raw;   // [2026-10-20] point_med removed
     /* [2026-10-20] remember the raw Point before the median for the loss guard */
 //    if(Deal_Flag > 20 && !Dis_Flag)
 //    {
 //        Line_Point = 45;
 //    }
 //    else
-        Line_Point = 12;   /* [2026-10-20] was 20: row 20 is ~half a metre ahead,
-                               the car only reacted once it was already on the
-                               line.  Row 12 = farther look-ahead. */
+        Line_Point = 20;   /* [2026-10-20] back to 20 (12 behaved worse) */
 
     Least_Sqaure_Method(&Mid_Ka,&Mid_Kb,58, Line_Count+2); // 拟合中线斜率
     //Least_Sqaure_Method(&Mid_Ka,&Mid_Kb,58, Line_Count+2); // 拟合中线斜率
     Fictitious_Beeline_Num = Fictitious_Beeline(Mid_Ka,Mid_Kb);  // 拟合中线  返回相似度
     res = Line_Point * Mid_Ka + Mid_Kb;
     point_raw = range_protect((int32)res, 2, 118);
-#if AGL_POINT_MEDIAN_EN
-    point_med = agl_point_median(point_raw);
-#else
-    point_med = point_raw;
-#endif
-    /* A large disagreement between the raw fit and its median means one of
-       them is seeing a reflection, not a lane.  Treat it as a lost line so
-       S3010_Control() holds the middle instead of jerking. */
-    if((uint8)((point_raw > point_med) ? (point_raw - point_med) : (point_med - point_raw)) > 25)
-    {
-        agl_point_hist[0] = agl_point_hist[1] = agl_point_hist[2] = 60;
-        point_med = 60;
-    }
-    Point = point_med;
+    /* [2026-10-20] median/centre-snap removed: with AGL_POINT_MEDIAN_EN=0
+       it was dead code, and re-enabling it later would jerk the steering. */
+    Point = point_raw;
     if(STEER_FORCE_CENTER) Point = Point_Mid;   // [2026-10-20] self-test
 
 }
@@ -348,14 +335,21 @@ void Control_Speed(void)
             static uint16 ramp_cnt2 = 0;
             static int32  out_L = 0, out_R = 0;
 
+            /* [2026-10-20] BUG FIX: the ramp only ever went UP.
+               Each 5 ms tick adds +1 to out_L/out_R whenever they are
+               below the target, but nothing pulls them down when the
+               target drops (Flag_stop 135 -> 85 or 0).  The car therefore
+               ratcheted up to the highest target it ever saw and stayed
+               there - the "sudden acceleration" and the high speed.
+               Now the ramp walks towards the target in BOTH directions. */
             if(++ ramp_cnt2 >= MOTOR_RAMP_TICKS)
             {
                 ramp_cnt2 = 0;
-                if(out_L < LMotorSpeed) out_L ++;
-                if(out_R < RMotorSpeed) out_R ++;
+                if(out_L < LMotorSpeed)      out_L ++;
+                else if(out_L > LMotorSpeed) out_L --;
+                if(out_R < RMotorSpeed)      out_R ++;
+                else if(out_R > RMotorSpeed) out_R --;
             }
-            if(out_L > LMotorSpeed) out_L = LMotorSpeed;
-            if(out_R > RMotorSpeed) out_R = RMotorSpeed;
 
             LMotorSpeed = out_L;
             RMotorSpeed = out_R;
