@@ -9,6 +9,12 @@
 #define CODE_LU_UI_H_
 
 #include "zf_common_headfile.h"
+/* [2026-10-20] cross-core debug print request (set by CPU1, printed by CPU0) */
+extern volatile uint8 lu_ui_dbg_log;
+void LuUI_Log_Poll(void);
+/* serial telemetry cadence: 0 = off, N = one line per N frames */
+#define AGL_LOG_EVERY_N   0
+
 
 #define PAGES   3
 #define PARAMETERS   15

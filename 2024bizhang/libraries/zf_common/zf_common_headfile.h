@@ -115,5 +115,6 @@
 #include "IMG_ANALYSE.h"
 #include "PID.h"
 #include "Lu_UI.h"
+#include "Img_analyse.h"      /* [2026-10-20] agl_rejected_rows, Glare_Suppress */
 #endif
 

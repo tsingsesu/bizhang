@@ -710,6 +710,7 @@ uint8 Diedai(uint8 *image, uint16 col, uint16 row)//    µü´ú·¨     //
     }
 
     T0 = (uint8)((min + max) / 2);
+    X = T0;
     A1 = A2 = T0;
     for(y = 0; X != T0 && y < 200;  y ++)                   // iterative split
     {

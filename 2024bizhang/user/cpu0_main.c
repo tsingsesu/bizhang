@@ -68,6 +68,7 @@ int core0_main(void)
         memcpy(image_copy[0], imagebinary[0], MT9V03X_IMAGE_SIZE);
         seekfree_assistant_camera_send(&camera_information);
 #endif
+        LuUI_Log_Poll();   // [2026-10-20] CPU1-requested serial telemetry (off by default)
         LuUI_Key();
         LuUI_Show();    // ★屏幕已确认可用（官方例程能亮）；坐标已核对不会触发 zf_assert
                         //   LuUI_Key() 必须保留（按键扫描在里面）

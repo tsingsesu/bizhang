@@ -13,7 +13,18 @@
    the picture could go all black.  0 = show the array as-is (grayscale). */
 #define LU_IMG_THRESHOLD    0
 /* 1 = page1 shows the RAW grayscale frame, 0 = binary image */
-#define LU_IMG_RAW_PREVIEW  1
+#define LU_IMG_RAW_PREVIEW  0
+/* [2026-10-20] lu_ui_dbg_log is forwarded from CPU1 so the print happens on
+   CPU0 (the only core owning the debug UART).  Keep it 0 during matches. */
+volatile uint8 lu_ui_dbg_log = 0;
+void LuUI_Log_Poll(void)
+{
+    if(lu_ui_dbg_log)
+    {
+        lu_ui_dbg_log = 0;
+        zf_log(0, "th=%d zy=%d dl=%d line=%d rej=%d", diedai_threshold, zyuzhi, Differ_light, Line_Count, agl_rejected_rows);
+    }
+}
 #include "zf_common_headfile.h"
 int8 Page_Choose_flag = 0;
 int8 Parameter_Choose_flag = 0;
