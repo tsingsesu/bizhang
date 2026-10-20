@@ -177,6 +177,16 @@ void Glare_Suppress(uint8 *data)
         {
             changed = 1;
         }
+#if AGL_CROSS_GUARD
+        /* [2026-10-20] reflection in the image centre makes both scans
+           stop at the same blob, giving L == R (or L > R).  Only the
+           absolute geometry is trusted: the lane centre must be below
+           the image centre in a row, and the two edges must stay apart. */
+        else if((uint16)Right_Line[i] <= (uint16)(Left_Line[i] + 12))
+        {
+            changed = 1;
+        }
+#endif
         else
         {
             // [2026-10-20] order matters: a wide white blob makes the first

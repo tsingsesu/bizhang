@@ -13,6 +13,10 @@
    line (tape) gives a white run of roughly 2 px in this 120x70 image. */
 #define AGL_EN              1      // 0 = old behaviour, for A/B testing
 #define AGL_NEAR_ROW        22     // rows >= this are near-field
+/* Absolute check: below the lane centre the two edge lines must never
+   cross.  This catches a row where a reflection grabbed the FIRST
+   transition on both sides (blobs in the image centre). */
+#define AGL_CROSS_GUARD     1
 #define AGL_RUN_NEAR        8      // white run wider than this (near)  = glare, skip
 #define AGL_RUN_FAR         5      // white run wider than this (far)   = glare, skip
 #define AGL_EDGE_JUMP_NEAR  8      // max px a lane edge may jump per row (near)
