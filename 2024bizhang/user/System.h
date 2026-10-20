@@ -14,7 +14,7 @@ extern void System();
 
 #define S_MOTOR_PIN   ATOM1_CH1_P33_9       //定义舵机引脚
 
-#define SteerMiddle       878  /* [2026-10-20] was 857.  duty bigger = more LEFT. */
+#define SteerMiddle       866  /* [2026-10-20] was 857. 854=right, 878=left, take the middle. */
 #define SteerLeft         915       //
 #define SteerRight        785     // 600               // 舵机最大右打角百分比
 #define SteerSet(x)    pwm_set_duty(S_MOTOR_PIN,x);  // 修改舵机占空比

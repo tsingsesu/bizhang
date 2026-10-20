@@ -110,7 +110,10 @@ void S3010_Control(void)
        Keep the wheels straight until the start signal sets Stop_1.
        Steering stays active after the start even while stopped at the
        zebra line (Flag_stop==1) so the lane is still held. */
-    if(Stop_1 == 0 && Flag_stop != 1)
+    /* [2026-10-20] only Stop_1 matters.  With a ToF fitted, System.c leaves
+       Flag_stop = 1 at power-up, so the old condition never fired.
+       Steering still works after the start (zebra stop keeps Flag_stop=1). */
+    if(Stop_1 == 0)
     {
         SD5_Duty = SteerMiddle;
     }
