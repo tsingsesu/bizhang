@@ -207,4 +207,9 @@ uint8 zuobianjie(uint8 *data,uint8 Left_Min, uint8 Right_Max);
 uint8 youbianjie(uint8 *data,uint8 Left_Min, uint8 Right_Max);
 void Traversal_Mid_Line_Ling(uint8 i, uint8 *data, uint8 Mid, uint8 Left_Min, uint8 Right_Max, uint16 *Left_Line, uint16 *Right_Line, uint16 *Left_Add_Line, uint16 *Right_Add_Line);
 
+/* [2026-10-20] edge lines captured before Glare_Suppress (for page1 overlay) */
+extern uint16 agl_L_before[61];
+extern uint16 agl_R_before[61];
+extern uint16 agl_M_before[61];
+
 #endif

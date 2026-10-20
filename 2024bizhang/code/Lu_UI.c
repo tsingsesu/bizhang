@@ -54,8 +54,13 @@ void LuUI_Show_page1(void)
                 ips200_show_gray_image(0, 0,*mt9v03x_image, MT9V03X_W, MT9V03X_H, 240, 140, 0);
             else
                 ips200_show_gray_image(0, 0,*imagebinary, MT9V03X_W, MT9V03X_H, 240, 140, LU_IMG_THRESHOLD);   /* [2026-10-20] was zyuzhi */     // 显示二值化图像
-            DisplayLine(Left_Add_Line, RGB565_RED);
-            DisplayLine(Right_Add_Line, RGB565_BLUE);
+            /* [2026-10-20] before/after the glare pass:
+               red/blue   = edge lines as Image_Handle produced them
+               green/yellow = after Glare_Suppress (what the car uses) */
+            DisplayLine(agl_L_before,   RGB565_RED);
+            DisplayLine(agl_R_before,   RGB565_BLUE);
+            DisplayLine(Left_Add_Line,  RGB565_GREEN);
+            DisplayLine(Right_Add_Line, RGB565_YELLOW);
             for(uint8 i = 59;i>5;i--)
             {
                ips200_drawpoint1(2*Fictitious_Midline[i], 2*i,RGB565_YELLOW);

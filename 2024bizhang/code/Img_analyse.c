@@ -144,9 +144,28 @@ static uint8 agl_sanitize_edge(uint16 *Line, uint8 i, uint8 near_side)
 
 /* Row-level glare pass, runs after Image_Handle() has built Left/Right_Line.
    Only rows Image_Handle actually produced (Line_Count .. 59) are touched. */
+/* [2026-10-20] snapshot of Left/Right/Mid as Image_Handle produced them,
+   captured before Glare_Suppress touches anything.  Used to draw both
+   versions on page1 (red/blue = before, green/yellow = after). */
+uint16 agl_L_before[61];
+uint16 agl_R_before[61];
+uint16 agl_M_before[61];
+
+void agl_capture_before(void)
+{
+    uint8 k;
+    for(k = 0; k < 61; k ++)
+    {
+        agl_L_before[k] = Left_Line[k];
+        agl_R_before[k] = Right_Line[k];
+        agl_M_before[k] = Mid_Line[k];
+    }
+}
+
 void Glare_Suppress(uint8 *data)
 {
     uint8 i, changed;
+    agl_capture_before();
     agl_rejected_rows = 0;
     agl_blob_pair = 0;
 #if AGL_EN
