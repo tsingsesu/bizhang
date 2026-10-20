@@ -104,34 +104,26 @@ uint8  Set_Speed;        //速度挡位  超过8为全程匀速
 void S3010_Control(void)
 {
     Point_Error = ABS(Point-Point_Mid);   //用于赛道判断
-    if(Flag_turn==1)//左转
+    /* [2026-10-20] START GATE: before the car is released the camera has no
+       valid image, Point stays 0, the PID sees an error of 60 and slams the
+       servo to its left limit (785..915) for the whole countdown.
+       Keep the wheels straight until the start signal sets Stop_1.
+       Steering stays active after the start even while stopped at the
+       zebra line (Flag_stop==1) so the lane is still held. */
+    if(Stop_1 == 0 && Flag_stop != 1)
     {
-        SD5_Duty=908;//904
+        SD5_Duty = SteerMiddle;
     }
-    else if(Flag_turn==2)//右转
-    {
-        SD5_Duty=794;//799
-    }
-    else if(Flag_turn==3)//中间
-    {
-        SD5_Duty=854;
-    }
-    else if(Flag_turn==4)//da左转
-    {
-        SD5_Duty=920;
-    }
-    else if(Flag_turn==5)//微偏右转
-    {
-        SD5_Duty=856;
-    }
-    else if(Flag_turn==6)//微偏右转
-        {
-            SD5_Duty=787;
-        }
-    else if(Flag_turn==8)//微偏右转
-        {
-            SD5_Duty=908;
-        }
+    /* [2026-10-20] these used to be hard-coded duty values (908/794/854 ...),
+       so they ignored SteerMiddle and pulled the car right whenever the
+       image logic set Flag_turn=3.  They are offsets from the trim now. */
+    else if(Flag_turn==1)          SD5_Duty = SteerMiddle + 51;   /* left        */
+    else if(Flag_turn==2)     SD5_Duty = SteerMiddle - 63;   /* right       */
+    else if(Flag_turn==3)     SD5_Duty = SteerMiddle;        /* straight    */
+    else if(Flag_turn==4)     SD5_Duty = SteerMiddle + 63;   /* hard left   */
+    else if(Flag_turn==5)     SD5_Duty = SteerMiddle - 1;    /* slight right*/
+    else if(Flag_turn==6)     SD5_Duty = SteerMiddle - 70;   /* more right  */
+    else if(Flag_turn==8)     SD5_Duty = SteerMiddle + 51;   /* left        */
     else
     {
         // ★保护：没线就回中位，不跑 PID
