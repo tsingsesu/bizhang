@@ -22,7 +22,11 @@ void LuUI_Log_Poll(void)
     if(lu_ui_dbg_log)
     {
         lu_ui_dbg_log = 0;
-        zf_log(0, "th=%d zy=%d dl=%d line=%d rej=%d", diedai_threshold, zyuzhi, Differ_light, Line_Count, agl_rejected_rows);
+        /* zf_log() takes only (level, string); use printf for values.
+           PRINTF_ENABLE=1 and CPU0 owns the debug UART. */
+        printf("th=%d zy=%d dl=%d line=%d rej=%d\n",
+               (int)diedai_threshold, (int)zyuzhi, (int)Differ_light,
+               (int)Line_Count, (int)agl_rejected_rows);
     }
 }
 #include "zf_common_headfile.h"

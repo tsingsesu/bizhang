@@ -77,19 +77,17 @@ void core1_main(void)
             Point_Control();      // 中点计算
             // ★原来清这个标志的是 LuUI_Show_page1() 里的那句 mt9v03x_finish_flag=0
             //   现在屏幕关了，必须在这里清 —— 否则标志一直是 1，同一帧会被反复处理
-            /* [2026-10-20] serial telemetry.  0 = off, N = one line every N frames.
-               Keep at 0 for matches: 115200 baud costs ~2 ms per line. */
+#if (AGL_LOG_EVERY_N > 0)
+            /* [2026-10-20] serial telemetry: one line per N frames. */
             {
                 static uint16 agl_log_cnt = 0;
                 if(++ agl_log_cnt >= AGL_LOG_EVERY_N)
                 {
                     agl_log_cnt = 0;
-                    if(AGL_LOG_EVERY_N > 0)
-                    {
-                        lu_ui_dbg_log = 1;
-                    }
+                    lu_ui_dbg_log = 1;
                 }
             }
+#endif
             mt9v03x_finish_flag = 0;
         }
 
