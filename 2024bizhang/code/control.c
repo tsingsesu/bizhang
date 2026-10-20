@@ -38,7 +38,7 @@
    在 Control_Speed() 末尾统一乘一遍，这样所有档位一起变慢，不用一个个改。
    注意：这个只改「目标速度」；只要编码器反馈还是 0（轮子不转），PID 照样会顶到 8000。
         想让电机真的不动，用上面的 MOTOR_TEST_MODE = 1。 */
-#define SPEED_PERCENT               (10)         // ★全局速度缩放：210 -> 21
+#define SPEED_PERCENT               (15)   /* [2026-10-20] 10 -> 15 (target 210 -> ~31) */
                                                  //   跑熟了再往上加：25 -> 52，50 -> 105
        /****************************    舵机控制变量    ****************************/
 uint8    Point_Mid = MT9V03X_W/2;
@@ -270,7 +270,9 @@ void Point_Control(void)
 //        Line_Point = 45;
 //    }
 //    else
-        Line_Point = 20;//识别远近
+        Line_Point = 12;   /* [2026-10-20] was 20: row 20 is ~half a metre ahead,
+                               the car only reacted once it was already on the
+                               line.  Row 12 = farther look-ahead. */
 
     Least_Sqaure_Method(&Mid_Ka,&Mid_Kb,58, Line_Count+2); // 拟合中线斜率
     //Least_Sqaure_Method(&Mid_Ka,&Mid_Kb,58, Line_Count+2); // 拟合中线斜率
