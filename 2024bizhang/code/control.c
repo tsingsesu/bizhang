@@ -47,6 +47,11 @@ uint8    Point_Mid = MT9V03X_W/2;
 /* [2026-10-20] 1 = ignore the image and steer to the mathematical centre.
    Use it to split "perception is biased" from "the car itself drifts". */
 #define STEER_FORCE_CENTER    0
+/* [2026-10-20] 1 = pure lane following: ignore Flag_turn / mode_2024 and
+   always steer from the fitted mid-line.  mode_2024 starts at 0 and its
+   "competition" branch forces Flag_turn=3 (straight) for the whole first
+   segment, which is why the car ignored the image. */
+#define STEER_LANE_FOLLOW     1
 #define AGL_POINT_MEDIAN_EN   0   // [2026-10-20] off until the glare pass is validated:
                                    // a steady lane offset would look like a "jump"
                                    // and pin the steering to the centre.
@@ -117,6 +122,16 @@ void S3010_Control(void)
     {
         SD5_Duty = SteerMiddle;
     }
+#if STEER_LANE_FOLLOW
+    /* [2026-10-20] lane following wins over the competition state machine */
+    else
+    {
+        if((0 == Point) || (Line_Count >= STEER_NO_LINE_LINECOUNT))
+            SD5_Duty = SteerMiddle;
+        else
+            SD5_Duty = range_protect(PlacePID_Control(&Point_PID, Point_Mid, Point), Pwm_Min, Pwm_Max);
+    }
+#else
     /* [2026-10-20] these used to be hard-coded duty values (908/794/854 ...),
        so they ignored SteerMiddle and pulled the car right whenever the
        image logic set Flag_turn=3.  They are offsets from the trim now. */
@@ -145,6 +160,7 @@ void S3010_Control(void)
             SD5_Duty = range_protect(SD5_Duty, Pwm_Min, Pwm_Max);  //舵机占空比限幅保护
         }
     }
+#endif
     SteerSet(SD5_Duty);     //修改舵机占空比
 }
 
